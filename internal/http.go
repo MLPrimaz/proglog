@@ -1,10 +1,10 @@
 package server
 
 import (
-        "encoding/json"
-        "net/http"
+	"encoding/json"
+	"net/http"
 
-        "github.com/gorilla/mux"
+	"github.com/gorilla/mux"
 )
 
 func NewHTTPServer(addr string) *http.Server {
@@ -13,18 +13,21 @@ func NewHTTPServer(addr string) *http.Server {
 	r.HandleFunc("/", httpsrv.handleProduce).Methods("POST")
 	r.HandleFunc("/", httpsrv.handleConsume).Methods("GET")
 	return &http.Server{
-			Addr: addr,
-			Handler: r,
+		Addr:    addr,
+		Handler: r,
 	}
 }
+
 type httpServer struct {
 	Log *Log
 }
-func newHTTPServer() *httpServer{
+
+func newHTTPServer() *httpServer {
 	return &httpServer{
-			Log: NewLog(),
+		Log: NewLog(),
 	}
 }
+
 type ProduceRequest struct {
 	Record Record `json:"record"`
 }
@@ -37,36 +40,37 @@ type ConsumeResponse struct {
 type ConsumeRequest struct {
 	Offset uint64 `json:"offset"`
 }
+
 func (s *httpServer) handleProduce(w http.ResponseWriter, r *http.Request) {
 	var req ProduceRequest
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
 	}
 	off, err := s.Log.Append(req.Record)
 	if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 	res := ProduceResponse{Offset: off}
 	err = json.NewEncoder(w).Encode(res)
 	if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 }
 func (s *httpServer) handleConsume(w http.ResponseWriter, r *http.Request) {
 	var req ConsumeRequest
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
 	}
 	record, err := s.Log.Read(req.Offset)
 	if err != nil {
-			http.Error(w, err.Error(), http.StatusNotFound)
-			return
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
 	}
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
@@ -75,7 +79,7 @@ func (s *httpServer) handleConsume(w http.ResponseWriter, r *http.Request) {
 	res := ConsumeResponse{Record: record}
 	err = json.NewEncoder(w).Encode(res)
 	if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 }
